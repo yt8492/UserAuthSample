@@ -3,6 +3,7 @@ package com.yt8492
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.yt8492.model.LoginRequest
+import com.yt8492.model.Password
 import com.yt8492.model.User
 import com.yt8492.model.Username
 import io.ktor.application.*
@@ -54,6 +55,14 @@ fun Application.module(testing: Boolean = false) {
         }
         post("/login") {
             val principal = call.receive<LoginRequest>()
+            val user = UserRepository.findByUsername(Username(principal.username)) ?: run {
+                call.respond(HttpStatusCode.BadRequest, "user not found")
+                return@post
+            }
+            if (!Password.isSame(user.password.hashedValue, principal.password)) {
+                call.respond(HttpStatusCode.BadRequest, "invalid password")
+                return@post
+            }
             val token = JWT.create()
                 .withSubject("id")
                 .withClaim("username", principal.username)
